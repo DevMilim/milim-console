@@ -15,7 +15,7 @@ pub struct CallFrame {
 
 fn print(args: &[Value]) -> Value {
     for arg in args {
-        print!("{}", arg.to_string())
+        print!("{} ", arg.to_string())
     }
     println!();
     Value::Nil
