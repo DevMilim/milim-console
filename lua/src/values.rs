@@ -57,8 +57,8 @@ impl<'de> Deserialize<'de> for Value {
         enum SerializedValue {
             Bool(bool),
             Number(f64),
-            String(String),
             Function(Function),
+            String(String),
             Nil,
         }
         let helper = SerializedValue::deserialize(deserializer)?;
