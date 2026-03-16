@@ -147,10 +147,9 @@ impl Compiler {
                     let idx = self.add_local(name.clone());
                     self.chunk.write(OpCode::SetLocal(idx));
                 }
-                Statement::Assign(left, right) => {
-                    self.compile_expr(right);
-
-                    if let Expr::Identifier(name) = left {
+                Statement::Assign(left, right) => match left {
+                    Expr::Identifier(name) => {
+                        self.compile_expr(right);
                         if let Some(local_idx) = self.resolve_local(name) {
                             self.chunk.write(OpCode::SetLocal(local_idx));
                         } else {
@@ -158,7 +157,14 @@ impl Compiler {
                             self.chunk.write(OpCode::SetGlobal(idx));
                         }
                     }
-                }
+                    Expr::Index { target, key } => {
+                        self.compile_expr(target);
+                        self.compile_expr(key);
+                        self.compile_expr(right);
+                        self.chunk.write(OpCode::SetTable(0));
+                    }
+                    _ => panic!("Assign invalido"),
+                },
                 Statement::FunctionDef { name, params, body } => {
                     let mut compiler = Compiler::new();
 
@@ -230,6 +236,7 @@ impl Compiler {
                         panic!("Erro: 'break' fora de um loop!")
                     }
                 }
+
                 s => unimplemented!("Statement ainda não implementado: {:?}", s),
             }
         }
@@ -288,6 +295,34 @@ impl Compiler {
                     self.compile_expr(arg);
                 }
                 self.chunk.write(OpCode::Call(arg_count));
+            }
+            Expr::Index { target, key } => {
+                self.compile_expr(target);
+                self.compile_expr(key);
+                self.chunk.write(OpCode::GetTable(0));
+            }
+            Expr::TableConstructor(fields) => {
+                self.chunk.write(OpCode::NewTable(fields.len()));
+
+                for field in fields {
+                    match field {
+                        crate::TableField::Dynamic { key, value } => {
+                            self.compile_expr(key);
+                            self.compile_expr(value);
+                            self.chunk.write(OpCode::SetTable(0));
+                        }
+                        crate::TableField::Named { key, value } => {
+                            let key_idx = self.chunk.add_constant(Value::String(key.clone()));
+                            self.chunk.write(OpCode::LoadConst(key_idx));
+                            self.compile_expr(value);
+                            self.chunk.write(OpCode::SetTable(0));
+                        }
+                        crate::TableField::List(expr) => {
+                            self.compile_expr(expr);
+                            self.chunk.write(OpCode::SetTable(0));
+                        }
+                    }
+                }
             }
             e => unimplemented!("Expressão não implementada: {:?}", e),
         }

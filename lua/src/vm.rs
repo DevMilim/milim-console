@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{Function, OpCode, Value};
 
@@ -88,9 +88,7 @@ impl VM {
             let instruction = frame.function.chunk.code[frame.ip];
             frame.ip += 1;
             use OpCode::*;
-            println!("STACK: {:?}", self.stack);
-            println!("IP: {}", frame.ip);
-            println!("OP: {:?}", instruction);
+
             match instruction {
                 LoadConst(idx) => {
                     let constant = frame.function.chunk.constants[idx].clone();
@@ -208,9 +206,30 @@ impl VM {
                         frame.ip = target_ip;
                     }
                 }
-                NewTable(_) => todo!(),
-                SetTable(_) => todo!(),
-                GetTable(_) => todo!(),
+                NewTable(_) => {
+                    let table = Rc::new(RefCell::new(HashMap::new()));
+                    self.stack.push(Value::Table(table));
+                }
+                SetTable(_) => {
+                    let value = self.stack.pop().unwrap();
+                    let key = self.stack.pop().unwrap();
+                    let table = self.stack.last().unwrap();
+                    if let Value::Table(t) = table {
+                        if let Value::String(key_str) = key {
+                            t.borrow_mut().insert(key_str, value);
+                        }
+                    }
+                }
+                GetTable(_) => {
+                    let key = self.stack.pop().unwrap();
+                    let table = self.stack.pop().unwrap();
+                    if let Value::Table(t) = table {
+                        if let Value::String(key_str) = key {
+                            let value = t.borrow().get(&key_str).cloned().unwrap_or(Value::Nil);
+                            self.stack.push(value);
+                        }
+                    }
+                }
             }
         }
     }

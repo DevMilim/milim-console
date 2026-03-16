@@ -13,7 +13,7 @@ pub enum Value {
     Nil,
     #[warn(unpredictable_function_pointer_comparisons)]
     NativeFuncion(fn(&[Value]) -> Value),
-    Table(Rc<RefCell<HashMap<Value, Value>>>),
+    Table(Rc<RefCell<HashMap<String, Value>>>),
 }
 
 impl Serialize for Value {
@@ -35,11 +35,9 @@ impl Serialize for Value {
             Value::String(s) => SerializableValue::String(s).serialize(serializer),
             Value::Function(f) => SerializableValue::Function(f).serialize(serializer),
             Value::Nil => SerializableValue::Nil.serialize(serializer),
-            Value::NativeFuncion(_) | Value::Table(_) => {
-                Err(serde::ser::Error::custom(
-                    "Não e possivel serializar objetos de runtime",
-                ))
-            }
+            Value::NativeFuncion(_) | Value::Table(_) => Err(serde::ser::Error::custom(
+                "Não e possivel serializar objetos de runtime",
+            )),
         }
     }
 }
