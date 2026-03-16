@@ -24,6 +24,8 @@ pub enum OpCode {
     Divide,
     Eq,
     Pop,
+    Dup,
+    Swap,
     Return,
 }
 
@@ -323,6 +325,51 @@ impl Compiler {
                         }
                     }
                 }
+            }
+            Expr::MethodCall {
+                target,
+                method,
+                args,
+            } => {
+                self.compile_expr(target);
+                self.chunk.write(OpCode::Dup);
+
+                let key_idx = self.chunk.add_constant(Value::String(method.clone()));
+                self.chunk.write(OpCode::LoadConst(key_idx));
+                self.chunk.write(OpCode::GetTable(0));
+
+                self.chunk.write(OpCode::Swap);
+
+                let mut arg_count = 1;
+
+                for arg in args {
+                    self.compile_expr(arg);
+                    arg_count += 1;
+                }
+                self.chunk.write(OpCode::Call(arg_count));
+            }
+            Expr::Function { params, body } => {
+                let mut compiler = Compiler::new();
+                let mut arity = 0;
+                for param in params {
+                    compiler.add_local(param.clone());
+                    arity += 1;
+                }
+
+                compiler.compile_stmt(body);
+                let nil_idx = compiler.chunk.add_constant(Value::Nil);
+
+                compiler.chunk.write(OpCode::LoadConst(nil_idx));
+                compiler.chunk.write(OpCode::Return);
+
+                let chunk = compiler.chunk;
+                let idx = self.chunk.add_constant(Value::Function(Rc::new(Function {
+                    name: "<anonymous>".to_string(),
+                    arity,
+                    chunk,
+                })));
+
+                self.chunk.write(OpCode::LoadConst(idx));
             }
             e => unimplemented!("Expressão não implementada: {:?}", e),
         }

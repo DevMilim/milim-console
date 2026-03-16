@@ -119,6 +119,28 @@ impl Parser {
             _ => return Err(ParserErrors::ExpectedIdentifier),
         };
 
+        if self.current()? == TokenStream::Colon {
+            self.advance();
+            let method = match self.current()? {
+                TokenStream::Identifier(id) => {
+                    self.advance();
+                    id
+                }
+                _ => return Err(ParserErrors::ExpectedIdentifier),
+            };
+            let (mut params, body) = self.parse_function_body()?;
+
+            params.insert(0, "self".to_string());
+
+            return Ok(Statement::Assign(
+                Expr::Index {
+                    target: Box::new(Expr::Identifier(name)),
+                    key: Box::new(Expr::String(method)),
+                },
+                Expr::Function { params, body },
+            ));
+        }
+
         let (params, body) = self.parse_function_body()?;
         Ok(Statement::FunctionDef { name, params, body })
     }
@@ -319,10 +341,10 @@ impl Parser {
                 Expr::TableConstructor(fields)
             }
             Function => {
-                self.advance();
                 let (params, body) = self.parse_function_body()?;
                 Expr::Function { params, body }
             }
+
             _ => return Err(ParserErrors::UnexpectedToken(token)),
         };
         loop {
@@ -367,6 +389,34 @@ impl Parser {
                         key: Box::new(key_expr),
                     }
                 }
+                Colon => {
+                    self.advance();
+                    let method = match self.current()? {
+                        Identifier(id) => id,
+                        _ => return Err(ParserErrors::ExpectedIdentifier),
+                    };
+
+                    self.advance();
+                    self.expect(LParen)?;
+                    let mut args = Vec::new();
+                    if self.current()? != RParen {
+                        loop {
+                            args.push(self.parse_expression(0)?);
+                            if self.current()? == Comma {
+                                self.advance();
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                    self.expect(RParen)?;
+
+                    expr = Expr::MethodCall {
+                        target: Box::new(expr),
+                        method,
+                        args,
+                    }
+                }
                 _ => break,
             }
         }
@@ -392,21 +442,23 @@ impl Parser {
     }
     fn parse_assignment_or_call(&mut self) -> Result<Statement, ParserErrors> {
         let left = self.parse_expression(0)?;
+
         match self.current() {
             Ok(TokenStream::Equal) => {
                 self.advance();
                 let right = self.parse_expression(0)?;
                 Ok(Statement::Assign(left, right))
             }
-            _ => {
-                if let Expr::Call { .. } = left {
-                    Ok(Statement::Expression(left))
-                } else {
-                    Err(ParserErrors::UnexpectedToken(
-                        self.current().unwrap_or(TokenStream::EOF),
-                    ))
-                }
-            }
+
+            _ => match left {
+                Expr::Call { .. }
+                | Expr::MethodCall { .. }
+                | Expr::Index { .. }
+                | Expr::Identifier(_) => Ok(Statement::Expression(left)),
+                _ => Err(ParserErrors::UnexpectedToken(
+                    self.current().unwrap_or(TokenStream::EOF),
+                )),
+            },
         }
     }
     fn parse_table_field(&mut self) -> Result<TableField, ParserErrors> {

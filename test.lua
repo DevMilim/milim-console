@@ -1,8 +1,14 @@
-local value = { data = 10 }
+player = {
+    move = function(self,x,y)
+        print(x,y)
+        print(self.data)
+    end,
+    data = 1,
+    add = function(self)
+        self.data = self.data + 1
+    end
+}
 
-value.data = 10
-
-local a = value["data"]
-
-print(a)
-print(12)
+player:move(10,20)
+player:add()
+player:move(10,20)

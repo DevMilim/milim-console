@@ -255,6 +255,14 @@ impl VM {
                         }
                     }
                 }
+                Dup => {
+                    let value = self.stack.last().unwrap().clone();
+                    self.stack.push(value);
+                }
+                Swap => {
+                    let len = self.stack.len();
+                    self.stack.swap(len - 1, len - 2);
+                }
             }
         }
     }
