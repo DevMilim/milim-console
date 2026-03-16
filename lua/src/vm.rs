@@ -49,12 +49,6 @@ impl VM {
         }
     }
 
-    fn pop(&mut self) -> Result<Value, VMResult> {
-        self.stack
-            .pop()
-            .ok_or(VMResult::RuntimeError("Stack underflow"))
-    }
-
     fn execute_call(&mut self, arg_count: usize) -> VMResult {
         let func_idx = self
             .stack
