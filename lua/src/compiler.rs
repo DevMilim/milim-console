@@ -155,6 +155,9 @@ impl Compiler {
                         arity += 1;
                     }
                     compiler.compile_stmt(body);
+
+                    let nil_idx = compiler.chunk.add_constant(Value::Nil);
+                    compiler.chunk.write(OpCode::LoadConst(nil_idx));
                     compiler.chunk.write(OpCode::Return);
 
                     let chunk = compiler.chunk;
