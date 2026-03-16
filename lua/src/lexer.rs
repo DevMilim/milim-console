@@ -73,60 +73,60 @@ impl Lexer {
                         _ => Identifier(ident),
                     };
 
-                    return Ok(token);
+                    Ok(token)
                 }
 
                 c if c.is_numeric() => {
                     let value = self.read_float()?;
-                    return Ok(Number(value));
+                    Ok(Number(value))
                 }
                 c if c == '"' => {
                     let value = self.read_string();
-                    return Ok(String(value));
+                    Ok(String(value))
                 }
                 '(' => {
                     self.advance();
-                    return Ok(LParen);
+                    Ok(LParen)
                 }
                 ')' => {
                     self.advance();
-                    return Ok(RParen);
+                    Ok(RParen)
                 }
                 '{' => {
                     self.advance();
-                    return Ok(LBrace);
+                    Ok(LBrace)
                 }
                 '}' => {
                     self.advance();
-                    return Ok(RBrace);
+                    Ok(RBrace)
                 }
                 '[' => {
                     self.advance();
-                    return Ok(LBracket);
+                    Ok(LBracket)
                 }
                 ']' => {
                     self.advance();
-                    return Ok(RBracket);
+                    Ok(RBracket)
                 }
                 ':' => {
                     self.advance();
-                    return Ok(Colon);
+                    Ok(Colon)
                 }
                 ',' => {
                     self.advance();
-                    return Ok(Comma);
+                    Ok(Comma)
                 }
                 ';' => {
                     self.advance();
-                    return Ok(Semicolon);
+                    Ok(Semicolon)
                 }
                 '*' => {
                     self.advance();
-                    return Ok(Asterisk);
+                    Ok(Asterisk)
                 }
                 '+' => {
                     self.advance();
-                    return Ok(Plus);
+                    Ok(Plus)
                 }
                 '-' => {
                     if self.peek() == Some(&'-') {
@@ -139,66 +139,66 @@ impl Lexer {
                         } else {
                             self.skip_single_line_comment();
                         }
-                        return self.next_token();
+                        self.next_token()
                     } else {
                         self.advance();
-                        return Ok(Minus);
+                        Ok(Minus)
                     }
                 }
                 '/' => {
                     self.advance();
-                    return Ok(Slash);
+                    Ok(Slash)
                 }
                 '%' => {
                     self.advance();
-                    return Ok(Percent);
+                    Ok(Percent)
                 }
                 '^' => {
                     self.advance();
-                    return Ok(Caret);
+                    Ok(Caret)
                 }
                 '#' => {
                     self.advance();
-                    return Ok(Hash);
+                    Ok(Hash)
                 }
                 '=' => {
                     if self.peek() == Some(&'=') {
                         self.advance();
                         self.advance();
-                        return Ok(EqualEqual);
+                        Ok(EqualEqual)
                     } else {
                         self.advance();
-                        return Ok(Equal);
+                        Ok(Equal)
                     }
                 }
                 '~' => {
                     if self.peek() == Some(&'=') {
                         self.advance();
                         self.advance();
-                        return Ok(NotEqual);
+                        Ok(NotEqual)
                     } else {
                         self.advance();
-                        return Err(LexerError::InvalidChar(ch));
+                        Err(LexerError::InvalidChar(ch))
                     }
                 }
                 '<' => {
                     if self.peek() == Some(&'=') {
                         self.advance();
                         self.advance();
-                        return Ok(LessEqual);
+                        Ok(LessEqual)
                     } else {
                         self.advance();
-                        return Ok(Less);
+                        Ok(Less)
                     }
                 }
                 '>' => {
                     if self.peek() == Some(&'=') {
                         self.advance();
                         self.advance();
-                        return Ok(GreaterEqual);
+                        Ok(GreaterEqual)
                     } else {
                         self.advance();
-                        return Ok(Greater);
+                        Ok(Greater)
                     }
                 }
                 '.' => {
@@ -207,21 +207,21 @@ impl Lexer {
                         if self.peek() == Some(&'.') {
                             self.advance();
                             self.advance();
-                            return Ok(DotDotDot);
+                            Ok(DotDotDot)
                         } else {
                             self.advance();
-                            return Ok(DotDot);
+                            Ok(DotDot)
                         }
                     } else {
                         self.advance();
-                        return Ok(Dot);
+                        Ok(Dot)
                     }
                 }
 
-                _ => return Err(LexerError::InvalidChar(ch)),
+                _ => Err(LexerError::InvalidChar(ch)),
             }
         } else {
-            return Ok(TokenStream::EOF);
+            Ok(TokenStream::EOF)
         }
     }
 

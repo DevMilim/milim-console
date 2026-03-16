@@ -48,6 +48,13 @@ impl VM {
             println!("{}: {:?}", id, code);
         }
     }
+
+    fn pop(&mut self) -> Result<Value, VMResult> {
+        self.stack
+            .pop()
+            .ok_or(VMResult::RuntimeError("Stack underflow"))
+    }
+
     fn execute_call(&mut self, arg_count: usize) -> VMResult {
         let func_idx = self
             .stack
@@ -87,6 +94,9 @@ impl VM {
             let instruction = frame.function.chunk.code[frame.ip];
             frame.ip += 1;
             use OpCode::*;
+            println!("STACK: {:?}", self.stack);
+            println!("IP: {}", frame.ip);
+            println!("OP: {:?}", instruction);
             match instruction {
                 LoadConst(idx) => {
                     let constant = frame.function.chunk.constants[idx].clone();
@@ -139,7 +149,7 @@ impl VM {
                     self.stack.push(Value::Bool(a == b));
                 }
                 Return => {
-                    let result = self.stack.pop().unwrap();
+                    let result = self.stack.pop().unwrap_or(Value::Nil);
                     let frame_end = self.frames.pop().unwrap();
                     self.stack.truncate(frame_end.base_slot);
 
@@ -169,7 +179,11 @@ impl VM {
                 }
                 SetLocal(idx) => {
                     let value = self.stack.pop().unwrap();
-                    self.stack[frame.base_slot + idx] = value
+                    let pos = frame.base_slot + idx;
+                    if pos >= self.stack.len() {
+                        return VMResult::RuntimeError("Local index out of bounds");
+                    }
+                    self.stack[pos] = value
                 }
                 SetGlobal(idx) => {
                     let name_val = &frame.function.chunk.constants[idx];

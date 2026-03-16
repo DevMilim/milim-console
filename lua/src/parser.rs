@@ -99,6 +99,7 @@ impl Parser {
         let token = self.current()?;
         if token == TokenStream::End
             || token == TokenStream::Else
+            || token == TokenStream::Elseif
             || token == TokenStream::EOF
             || token == TokenStream::Semicolon
         {
@@ -172,11 +173,52 @@ impl Parser {
 
         let then_block = self.parse_block()?;
 
+        let mut elseif_chain = Vec::new();
+
+        while let Ok(token) = self.current() {
+            if token == TokenStream::Elseif {
+                self.advance();
+                let elseif_cond = self.parse_expression(0)?;
+                self.expect(TokenStream::Then)?;
+                let elseif_then = self.parse_block()?;
+                let elseif_stmt = Statement::If {
+                    condition: elseif_cond,
+                    then_block: elseif_then,
+                    else_block: Vec::new(),
+                };
+                elseif_chain.push(elseif_stmt);
+                continue;
+            }
+            break;
+        }
+
         let mut else_block = Vec::new();
 
         if self.current()? == TokenStream::Else {
             self.advance();
-            else_block = self.parse_block()?;
+            let parsed_else = self.parse_block()?;
+            if !elseif_chain.is_empty() {
+                let mut last = elseif_chain.pop().unwrap();
+                if let Statement::If {
+                    condition,
+                    then_block,
+                    ..
+                } = last
+                {
+                    last = Statement::If {
+                        condition,
+                        then_block,
+                        else_block: parsed_else,
+                    }
+                }
+                elseif_chain.push(last);
+            } else {
+                else_block = parsed_else
+            }
+        }
+
+        if !elseif_chain.is_empty() {
+            else_block = elseif_chain;
         }
 
         self.expect(TokenStream::End)?;
@@ -190,7 +232,10 @@ impl Parser {
     fn parse_block(&mut self) -> Result<Vec<Statement>, ParserErrors> {
         let mut stmts = Vec::new();
         while let Ok(token) = self.current() {
-            if token == TokenStream::End || token == TokenStream::Else || token == TokenStream::EOF
+            if token == TokenStream::End
+                || token == TokenStream::Else
+                || token == TokenStream::EOF
+                || token == TokenStream::Elseif
             {
                 break;
             }

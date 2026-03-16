@@ -38,6 +38,12 @@ pub struct Chunk {
     pub constants: Vec<Value>,
 }
 
+impl Default for Chunk {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Chunk {
     pub fn new() -> Self {
         Self {
@@ -72,6 +78,12 @@ pub struct Compiler {
     scope_depth: usize,
     loop_stack: Vec<Vec<usize>>,
 }
+impl Default for Compiler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Compiler {
     pub fn new() -> Self {
         Self {
@@ -132,7 +144,8 @@ impl Compiler {
                 }
                 Statement::LocalVar(name, value) => {
                     self.compile_expr(value);
-                    self.add_local(name.clone());
+                    let idx = self.add_local(name.clone());
+                    self.chunk.write(OpCode::SetLocal(idx));
                 }
                 Statement::Assign(left, right) => {
                     self.compile_expr(right);
@@ -254,7 +267,10 @@ impl Compiler {
                     t => unimplemented!("Operador não implementado no compilador: {:?}", t),
                 }
             }
-            Expr::UnaryOp { operator, argument } => {
+            Expr::UnaryOp {
+                operator: _,
+                argument,
+            } => {
                 self.compile_expr(argument);
             }
             Expr::Identifier(id) => {

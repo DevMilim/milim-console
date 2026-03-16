@@ -18,7 +18,7 @@ pub fn save_bytecode(function: &Function, filename: &str) -> std::io::Result<()>
 
     let encoded = config
         .serialize(function)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        .map_err(|e| std::io::Error::other(e.to_string()))?;
 
     encoder.write_all(&encoded)?;
     encoder.finish()?;

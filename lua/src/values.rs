@@ -36,9 +36,9 @@ impl Serialize for Value {
             Value::Function(f) => SerializableValue::Function(f).serialize(serializer),
             Value::Nil => SerializableValue::Nil.serialize(serializer),
             Value::NativeFuncion(_) | Value::Table(_) => {
-                return Err(serde::ser::Error::custom(
+                Err(serde::ser::Error::custom(
                     "Não e possivel serializar objetos de runtime",
-                ));
+                ))
             }
         }
     }

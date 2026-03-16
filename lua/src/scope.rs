@@ -35,7 +35,7 @@ impl Env {
     pub fn assign(&mut self, name: String, value: Value) -> Result<(), RuntimeError> {
         if let Some(b) = self.vars.get_mut(&name) {
             if !b.mutable {
-                return Err(RuntimeError::AssignToConst(name.into()));
+                return Err(RuntimeError::AssignToConst(name));
             }
             b.value = value;
             Ok(())
