@@ -1,0 +1,1 @@
+Este projeto sera uma implementação de um console similar ao tic-80 mas com especificações um pouco melhores
