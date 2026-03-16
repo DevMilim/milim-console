@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{Function, OpCode, Value};
+use crate::{Function, LuaTable, OpCode, Value};
 
 pub enum VMResult {
     Ok,
@@ -88,7 +88,6 @@ impl VM {
             let instruction = frame.function.chunk.code[frame.ip];
             frame.ip += 1;
             use OpCode::*;
-
             match instruction {
                 LoadConst(idx) => {
                     let constant = frame.function.chunk.constants[idx].clone();
@@ -170,12 +169,14 @@ impl VM {
                     self.stack.push(value);
                 }
                 SetLocal(idx) => {
-                    let value = self.stack.pop().unwrap();
                     let pos = frame.base_slot + idx;
+                    let value = self.stack.pop().unwrap();
+
                     if pos >= self.stack.len() {
-                        return VMResult::RuntimeError("Local index out of bounds");
+                        self.stack.push(value);
+                    } else {
+                        self.stack[pos] = value
                     }
-                    self.stack[pos] = value
                 }
                 SetGlobal(idx) => {
                     let name_val = &frame.function.chunk.constants[idx];
@@ -207,7 +208,7 @@ impl VM {
                     }
                 }
                 NewTable(_) => {
-                    let table = Rc::new(RefCell::new(HashMap::new()));
+                    let table = Rc::new(RefCell::new(LuaTable::default()));
                     self.stack.push(Value::Table(table));
                 }
                 SetTable(_) => {
@@ -215,8 +216,20 @@ impl VM {
                     let key = self.stack.pop().unwrap();
                     let table = self.stack.last().unwrap();
                     if let Value::Table(t) = table {
-                        if let Value::String(key_str) = key {
-                            t.borrow_mut().insert(key_str, value);
+                        let mut t = t.borrow_mut();
+
+                        match key {
+                            Value::Number(n) => {
+                                let idx = n as usize;
+                                if idx >= t.array.len() {
+                                    t.array.resize(idx + 1, Value::Nil);
+                                }
+                                t.array[idx] = value;
+                            }
+                            Value::String(s) => {
+                                t.map.insert(s, value);
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -224,9 +237,21 @@ impl VM {
                     let key = self.stack.pop().unwrap();
                     let table = self.stack.pop().unwrap();
                     if let Value::Table(t) = table {
-                        if let Value::String(key_str) = key {
-                            let value = t.borrow().get(&key_str).cloned().unwrap_or(Value::Nil);
-                            self.stack.push(value);
+                        let t = t.borrow();
+                        match key {
+                            Value::Number(n) => {
+                                let idx = n as usize;
+                                if idx < t.array.len() {
+                                    self.stack.push(t.array[idx].clone());
+                                } else {
+                                    self.stack.push(Value::Nil);
+                                }
+                            }
+                            Value::String(s) => {
+                                let value = t.map.get(&s).cloned().unwrap_or(Value::Nil);
+                                self.stack.push(value);
+                            }
+                            _ => self.stack.push(Value::Nil),
                         }
                     }
                 }

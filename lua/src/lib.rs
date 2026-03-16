@@ -43,7 +43,9 @@ impl Lua {
             chunk: compiler.chunk,
         });
 
-        VM::new(main_func).run();
+        let mut vm = VM::new(main_func);
+        vm.print_bytecode();
+        vm.run();
     }
     pub fn compile(file: &str, output: &str) {
         let mut file = File::open(file).unwrap();

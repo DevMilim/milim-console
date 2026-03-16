@@ -1,5 +1,8 @@
-local value = { value = 10 }
+local value = { data = 10 }
 
 value.data = 10
 
-print(value.data)
+local a = value["data"]
+
+print(a)
+print(12)

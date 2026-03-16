@@ -4,6 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::Chunk;
 
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct LuaTable {
+    pub array: Vec<Value>,
+    pub map: HashMap<String, Value>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Bool(bool),
@@ -13,7 +19,7 @@ pub enum Value {
     Nil,
     #[warn(unpredictable_function_pointer_comparisons)]
     NativeFuncion(fn(&[Value]) -> Value),
-    Table(Rc<RefCell<HashMap<String, Value>>>),
+    Table(Rc<RefCell<LuaTable>>),
 }
 
 impl Serialize for Value {
@@ -89,9 +95,9 @@ impl Value {
             Value::Number(n) => n.to_string(),
             Value::String(s) => s.clone(),
             Value::Nil => "nil".to_string(),
-            Value::Function(_) => "".to_string(),
-            Value::NativeFuncion(_) => "".to_string(),
-            Value::Table(_) => "".to_string(),
+            Value::Function(_) => "fn".to_string(),
+            Value::NativeFuncion(_) => "nfn".to_string(),
+            Value::Table(_) => "table".to_string(),
         }
     }
 }
